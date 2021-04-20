@@ -30,31 +30,31 @@ int main(int argc, char **argv) {
     if (pipe(fd) == -1) {
         fprintf(stdout, "Error: %s\n", strerror(errno));
         exit(1);
-    }//if
+    }
     pid_t pid = fork();
     if (pid == -1) {
         fprintf(stdout, "Error: %s\n", strerror(errno));
         exit(1);
-    }//if
+    }
     //---------------------------------[ CHILD ]
     if (pid == 0) {
         close(fd[1]);
         // terminate the infinite loop:
         if (signal(SIGUSR1, userHandler) == SIG_ERR) {
             fprintf(stdout, "Error: %s\n", strerror(errno));
-        }// if
+        }
         if (signal(SIGFPE, childHandler) == SIG_ERR) {
             fprintf(stdout, "Error: %s\n", strerror(errno));
-        }// if
+        }
         //child ignores sigint:
         if (signal(SIGINT, SIG_IGN) == SIG_ERR) {
             fprintf(stdout, "Error: %s\n", strerror(errno));
-        }// if
+        }
         // recieve sigfpe from parent:
         if (signal(SIGALRM, alarmHandler) == SIG_ERR) {
             fprintf(stdout, "Error: %s\n", strerror(errno));
-        }// if
-        //-------
+        }
+        
         for (;;) {
             pause();
             if (childFlag) {
@@ -63,31 +63,33 @@ int main(int argc, char **argv) {
                 //read from pipe:
                 if ((read(fd[0], line, 512)) < 0) {
                     fprintf(stderr, "Err:%s", strerror(errno));
-                }//if
+                }
 
                 if (line[0] == '\n') {
                     printf("Err: please enter a message.\n");
                     break;
-                }//if
+                }
+                
                 // get rid of any leading space:
                 if (line[0] == ' ') {
                     for (int i = 0; i < (strlen(msg) - 1);) {
                         while (line[i] == ' ') {
                             i++;
-                        }//while
+                        }
+                        
                         //copy everything from that index:
                         strcpy(buf, &line[i]);
                         break;
-                    }//for
+                    }
                     // copy back to line.
                     strcpy(line, buf);
-                }//if
+                }
                 // return to global delay:
                 if (line[0] > '0' && line[0] <= '9') {
                     sscanf(line, "%d", &delay);
                 } else{
                     delay = 5;
-                }//else
+                }
                 //if the first character is an integer, grab the rest of the message:
                 for (int i = 0; i < (strlen(line) - 1); i++) {
                     //copy user input to our temp string:
@@ -102,38 +104,38 @@ int main(int argc, char **argv) {
                             //and get rid of any possible spaces:
                             while (line[i] == ' ') {
                                 i++;
-                            }//while
+                            }
                             strcpy(buf, &line[i]);
                             // copy the 511 characters minus the pesky new line:
                             // msg will be used to be written:
                             sscanf(buf, "%511[^\n]", msg);
                             break;
-                        }//while
+                        }
                         break;
                     } else {
                         sscanf(line, "%511[^\n]", msg);
                         break;
-                    }//else
-                }//for
+                    }
+                }
                 childFlag = false;
             }//if childFlag == true
             if ((strcmp(msg, "exit")) == 0) {
                 printf("exiting...\n");
                 exit(0);
-            }//if
+            }
             alarm(delay);
             printf("%s\n", msg);
-        }//for - infinite
+        }
         close(fd[0]);
     } else {
         //---------------------------------[ PARENT ]
         //handle interupt:
         if (signal(SIGINT, parentHandler) == SIG_ERR) {
             printf("Error: %s\n", strerror(errno));
-        }// if
+        }
         if (signal(SIGCHLD, parentHandlerTwo) == SIG_ERR) {
             printf("Error: %s\n", strerror(errno));
-        }// if
+        }
         for (;;) {
             // user writes a message in handler to global line.
             pause();
@@ -150,30 +152,30 @@ int main(int argc, char **argv) {
                 tryAgain = tooManySpaces(line);
                 if (tryAgain) {
                     break;
-                }//if
+                }
                 // get rid of any leading space:
                 if (line[0] == '\n') {
                     printf("Err: please enter a message.\n");
                     break;
-                }//if
+                }
                 if (line[0] == ' ') {
                     for (int i = 0; i < (strlen(msg) - 1);) {
                         while (line[i] == ' ') {
                             i++;
-                        }//while
+                        }
                         //copy everything from that index:
                         strcpy(buf, &line[i]);
                         break;
-                    }//for
+                    }
                     // copy back to line.
                     strcpy(line, buf);
-                }//if
+                }
 
                 if (line[0] > '0' && line[0] <= '9') {
                     sscanf(line, "%d", &delay);
                 } else{
                     delay = 5;
-                }//else
+                }
                 //if the first character is an integer, grab the rest of the message:
                 for (int i = 0; i < (strlen(line) - 1); i++) {
                     //copy user input to our temp string:
@@ -188,31 +190,31 @@ int main(int argc, char **argv) {
                             //and get rid of any possible spaces:
                             while (line[i] == ' ') {
                                 i++;
-                            }//while
+                            }
                             strcpy(buf, &line[i]);
                             // copy the 511 characters minus the pesky new line:
                             // msg will be used to be written:
                             sscanf(buf, "%511[^\n]", msg);
                             break;
-                        }//while
+                        }
                         break;
                     } else {
                         sscanf(line, "%511[^\n]", msg);
-                    }//else
-                }//for
-            }//while
+                    }
+                }
+            }
             //now we write it to pipe:
             if (write(fd[1], line, 512) == -1) {
                 printf("Error: %s\n", strerror(errno));
-            }//
+            }
             //send signal to child:
             kill(pid, SIGFPE);
-        }//while
-    }//for
+        }
+    }
     if (close(fd[1]) == -1) {
         printf("Error: %s\n", strerror(errno));
-    }//if
-}//main
+    }
+}
 //-------
 
 //---------------------------
@@ -256,10 +258,10 @@ bool tooManySpaces(char *line) {
     while (i <= (strlen(line) - 1)) {
         if (line[i] == ' ') {
             space++;
-        }//while
+        }
         //if the string is nothing but spaces:
         i++;
-    }//while
+    }
     if (space == (strlen(line) - 1)) {
         // return true to goAgain.
         return true;
@@ -267,7 +269,6 @@ bool tooManySpaces(char *line) {
         return true;
     } else {
         return false;
-    }//else
-
-}//toomanyspaces
+    }
+}
 //----------------
